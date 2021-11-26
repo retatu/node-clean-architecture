@@ -1,17 +1,38 @@
 class LoginRouter {
   route (httpResponse) {
     if (!httpResponse || !httpResponse.body) {
-      return {
-        statusCode: 500
-      }
+      return HttpRespose.serverError()
     }
 
     const { email, password } = httpResponse.body
-    if (!password || !email) {
-      return {
-        statusCode: 400
-      }
+    if (!email) {
+      return HttpRespose.badRequest('email')
     }
+    if (!password) {
+      return HttpRespose.badRequest('password')
+    }
+  }
+}
+
+class HttpRespose {
+  static badRequest (name) {
+    return {
+      statusCode: 400,
+      body: new MissingParamError(name)
+    }
+  }
+
+  static serverError () {
+    return {
+      statusCode: 500
+    }
+  }
+}
+
+class MissingParamError extends Error {
+  constructor (name) {
+    super(`Missing param: ${name}`)
+    this.name = 'MissingParamError'
   }
 }
 
@@ -25,6 +46,7 @@ describe('Login Router', () => {
     }
     const httpResponse = sut.route(httpRequest)
     expect(httpResponse.statusCode).toBe(400)
+    expect(httpResponse.body).toEqual(new MissingParamError('email'))
   })
   test('Should return 400 if no password is provided', () => {
     const sut = new LoginRouter()
@@ -35,6 +57,7 @@ describe('Login Router', () => {
     }
     const httpResponse = sut.route(httpRequest)
     expect(httpResponse.statusCode).toBe(400)
+    expect(httpResponse.body).toEqual(new MissingParamError('password'))
   })
   test('Should return 500 if no http request is provided', () => {
     const sut = new LoginRouter()
