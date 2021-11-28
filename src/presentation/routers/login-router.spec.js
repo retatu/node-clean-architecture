@@ -4,9 +4,14 @@ const LoginRouter = require('./login-router')
 
 const makeSut = () => {
   class AuthUseCaseSpy {
+    constructor () {
+      this.accessToken = 'valid_token'
+    }
+
     auth (email, password) {
       this.email = email
       this.password = password
+      return this.accessToken
     }
   }
   const authUseCaseSpy = new AuthUseCaseSpy()
@@ -59,18 +64,6 @@ describe('Login Router', () => {
     expect(authUseCaseSpy.email).toBe(httpRequest.body.email)
     expect(authUseCaseSpy.password).toBe(httpRequest.body.password)
   })
-  test('Should return 401 when invalid credentials are provided', () => {
-    const { sut } = makeSut()
-    const httpRequest = {
-      body: {
-        password: 'invalid_password',
-        email: 'invalid_email@gmail.com'
-      }
-    }
-    const httpResponse = sut.route(httpRequest)
-    expect(httpResponse.statusCode).toBe(401)
-    expect(httpResponse.body).toEqual(new UnauthorizedError())
-  })
   test('Should return 500 if no AuthCase is provided', () => {
     const sut = new LoginRouter()
     const httpRequest = {
@@ -92,5 +85,29 @@ describe('Login Router', () => {
     }
     const httpResponse = sut.route(httpRequest)
     expect(httpResponse.statusCode).toBe(500)
+  })
+  test('Should return 200 if valid credentials are provided', () => {
+    const { sut } = makeSut()
+    const httpRequest = {
+      body: {
+        password: 'valid_password',
+        email: 'valid_email@gmail.com'
+      }
+    }
+    const httpResponse = sut.route(httpRequest)
+    expect(httpResponse.statusCode).toBe(200)
+  })
+  test('Should return 401 if invalid credentials are provided', () => {
+    const { sut, authUseCaseSpy } = makeSut()
+    authUseCaseSpy.accessToken = null
+    const httpRequest = {
+      body: {
+        password: 'invalid_password',
+        email: 'invalid_email@gmail.com'
+      }
+    }
+    const httpResponse = sut.route(httpRequest)
+    expect(httpResponse.statusCode).toBe(401)
+    expect(httpResponse.body).toEqual(new UnauthorizedError())
   })
 })
