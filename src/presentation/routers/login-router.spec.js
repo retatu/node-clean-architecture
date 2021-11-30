@@ -1,3 +1,4 @@
+const InvalidParamError = require('../helpers/invalid-param-error')
 const MissingParamError = require('../helpers/missing-param-error')
 const ServerError = require('../helpers/server-error')
 const UnauthorizedError = require('../helpers/unauthorized-error')
@@ -6,8 +7,19 @@ const LoginRouter = require('./login-router')
 const makeSut = () => {
   const authUseCaseSpy = makeAuthUseCaseWith()
   authUseCaseSpy.accessToken = 'valid_token'
-  const sut = new LoginRouter(authUseCaseSpy)
-  return { authUseCaseSpy, sut }
+  const emailValidator = makeEmailValidator()
+  emailValidator.isEmailValid = true
+  const sut = new LoginRouter(authUseCaseSpy, emailValidator)
+  return { authUseCaseSpy, sut, emailValidator }
+}
+
+const makeEmailValidator = () => {
+  class EmailValidatorSpy {
+    isValid (email) {
+      return this.isEmailValid
+    }
+  }
+  return new EmailValidatorSpy()
 }
 
 const makeAuthUseCaseWith = () => {
@@ -139,17 +151,18 @@ describe('Login Router', () => {
     expect(httpResponse.statusCode).toBe(500)
     expect(httpResponse.body).toEqual(new ServerError())
   })
-  // test('Should return 400 if invalid email is provided', async () => {
-  //   const { sut, authUseCaseSpy } = makeSut()
-  //   authUseCaseSpy.accessToken = null
-  //   const httpRequest = {
-  //     body: {
-  //       password: 'any',
-  //       email: 'invalid_email@gmail.com'
-  //     }
-  //   }
-  //   const httpResponse = await sut.route(httpRequest)
-  //   expect(httpResponse.statusCode).toBe(400)
-  //   expect(httpResponse.body).toEqual(new InvalidParamError('email'))
-  // })
+  test('Should return 400 if invalid email is provided', async () => {
+    const { sut, authUseCaseSpy, emailValidator } = makeSut()
+    emailValidator.isEmailValid = false
+    authUseCaseSpy.accessToken = null
+    const httpRequest = {
+      body: {
+        password: 'any',
+        email: 'invalid_email@gmail.com'
+      }
+    }
+    const httpResponse = await sut.route(httpRequest)
+    expect(httpResponse.statusCode).toBe(400)
+    expect(httpResponse.body).toEqual(new InvalidParamError('email'))
+  })
 })
