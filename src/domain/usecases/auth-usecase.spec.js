@@ -1,4 +1,4 @@
-const { MissingParamError, InvalidParamError } = require('../../utils/errors')
+const { MissingParamError } = require('../../utils/errors')
 const AuthUseCase = require('./auth-usecase')
 
 class LoadUserByEmailRepositorySpy {
@@ -35,16 +35,21 @@ describe('Auth UseCase', () => {
   test('Should throw if no LoadUserByEmailRepository is provided', async () => {
     const sut = new AuthUseCase()
     const promise = sut.auth('any_email@email.com', 'any_passowrd')
-    expect(promise).rejects.toThrow(new MissingParamError('repository'))
+    expect(promise).rejects.toThrow()
   })
   test('Should throw if no LoadUserByEmailRepository has no load method', async () => {
     const sut = new AuthUseCase({})
     const promise = sut.auth('any_email@email.com', 'any_passowrd')
-    expect(promise).rejects.toThrow(new InvalidParamError('repository'))
+    expect(promise).rejects.toThrow()
   })
-  test('Should return null if LoadUserByEmailRepository returns null', async () => {
+  test('Should return null if an invalid email is provided', async () => {
     const { sut } = makeSut()
     const accessToken = await sut.auth('invalid_email@email.com', 'any_passowrd')
+    expect(accessToken).toBe(null)
+  })
+  test('Should return null if an invalid password is provided', async () => {
+    const { sut } = makeSut()
+    const accessToken = await sut.auth('any@email.com', 'invalid_passowrd')
     expect(accessToken).toBe(null)
   })
 })
