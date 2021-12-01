@@ -4,11 +4,13 @@ const AuthUseCase = require('./auth-usecase')
 class LoadUserByEmailRepositorySpy {
   async load (email) {
     this.email = email
+    return this.user
   }
 }
 
 const makeSut = () => {
   const loadUserByEmailRepository = new LoadUserByEmailRepositorySpy()
+  loadUserByEmailRepository.user = {}
   const sut = new AuthUseCase(loadUserByEmailRepository)
   return {
     sut,
@@ -43,7 +45,8 @@ describe('Auth UseCase', () => {
     expect(promise).rejects.toThrow()
   })
   test('Should return null if an invalid email is provided', async () => {
-    const { sut } = makeSut()
+    const { sut, loadUserByEmailRepository } = makeSut()
+    loadUserByEmailRepository.user = null
     const accessToken = await sut.auth('invalid_email@email.com', 'any_passowrd')
     expect(accessToken).toBe(null)
   })
