@@ -1,32 +1,39 @@
 const { MissingParamError } = require('../../utils/errors')
 const AuthUseCase = require('./auth-usecase')
 
-const makeSut = () => {
+const makeLoadUserByEmailRepositorySpy = () => {
   class LoadUserByEmailRepositorySpy {
     async load (email) {
       this.email = email
       return this.user
     }
   }
-
-  class EncryptSpy {
-    async compare (password, hashedPassword) {
-      this.password = password
-      this.hashedPassword = hashedPassword
-      return null
-    }
-  }
-
   const loadUserByEmailRepository = new LoadUserByEmailRepositorySpy()
   loadUserByEmailRepository.user = {
     password: 'hashed_password'
   }
-  const encryptSpy = new EncryptSpy()
-  const sut = new AuthUseCase(loadUserByEmailRepository, encryptSpy)
+  return loadUserByEmailRepository
+}
+const makeEncrypter = () => {
+  class EncrypterSpy {
+    async compare (password, hashedPassword) {
+      this.password = password
+      this.hashedPassword = hashedPassword
+      return this.isValid
+    }
+  }
+  const encrypterSpy = new EncrypterSpy()
+  encrypterSpy.isValid = true
+  return encrypterSpy
+}
+const makeSut = () => {
+  const encrypterSpy = makeEncrypter()
+  const loadUserByEmailRepository = makeLoadUserByEmailRepositorySpy()
+  const sut = new AuthUseCase(loadUserByEmailRepository, encrypterSpy)
   return {
     sut,
     loadUserByEmailRepository,
-    encryptSpy
+    encrypterSpy
   }
 }
 
@@ -63,14 +70,15 @@ describe('Auth UseCase', () => {
     expect(accessToken).toBe(null)
   })
   test('Should return null if an invalid password is provided', async () => {
-    const { sut } = makeSut()
+    const { sut, encrypterSpy } = makeSut()
+    encrypterSpy.isValid = false
     const accessToken = await sut.auth('any@email.com', 'invalid_passowrd')
     expect(accessToken).toBe(null)
   })
-  test('Should call Encrypt with correct values', async () => {
-    const { sut, loadUserByEmailRepository, encryptSpy } = makeSut()
+  test('Should call Encrypter with correct values', async () => {
+    const { sut, loadUserByEmailRepository, encrypterSpy } = makeSut()
     await sut.auth('valid_email@email.com', 'any_password')
-    expect(encryptSpy.password).toBe('any_password')
-    expect(encryptSpy.hashedPassword).toBe(loadUserByEmailRepository.user.password)
+    expect(encrypterSpy.password).toBe('any_password')
+    expect(encrypterSpy.hashedPassword).toBe(loadUserByEmailRepository.user.password)
   })
 })
