@@ -113,4 +113,9 @@ describe('Auth UseCase', () => {
     expect(accessToken).toBe(tokenGeneratorSpy.accessToken)
     expect(accessToken).toBeTruthy()
   })
+  test('Should throw if no dependecy is provided ', async () => {
+    const sut = new AuthUseCase()
+    const promise = sut.auth('any_email@email.com', 'any_passowrd')
+    expect(promise).rejects.toThrow()
+  })
 })
